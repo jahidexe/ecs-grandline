@@ -1,7 +1,9 @@
-name: Terraform Plan
+name: terraform plan
 
 on:
   workflow_dispatch:
+    branches:
+      - dev   # Only allow manual runs from dev branch
 
 jobs:
   terraform-plan:
@@ -45,11 +47,7 @@ jobs:
         run: terraform validate -no-color
 
       - name: Terraform Plan
-        run: terraform plan \
-               -var-file=dev.tfvars \
-               -var="db_password=${{ secrets.DB_PASSWORD }}" \
-               -var="api_key=${{ secrets.API_KEY }}" \
-               -out=plan.out
+        run: terraform plan -out=plan.out
 
       - name: Show plan summary
         run: terraform show -no-color plan.out | tee plan.txt
