@@ -52,6 +52,3 @@ jobs:
           tflint_version: latest
       - run: tflint || true
 
-concurrency:
-  group: tf-plan-${{ github.ref }}
-  cancel-in-progress: true
