@@ -1,0 +1,54 @@
+name: terraform plan
+
+on:
+  push:
+    branches: [ dev ]
+    paths:
+      - 'Terraform/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+    branches: [ dev ]
+
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        working-directory: ./Terraform
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-session-name: gha-terraform-plan
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.3.0
+
+      - run: terraform init -input=false
+      - run: terraform fmt -recursive -check
+      - run: terraform validate -no-color
+      - run: terraform plan -out=plan.out
+      - run: terraform show -no-color plan.out | tee plan.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: |
+            ./terraform/plan.out
+            ./terraform/plan.txt
+
+      - uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: latest
+      - run: tflint || true
+
